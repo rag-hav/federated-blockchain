@@ -1,8 +1,9 @@
+// SPDX-License-Identifier: BSD-3-Clause-Modification
 pragma solidity ^0.8.0;
 
 contract FederatedLearning {
     struct Model {
-        address owner;
+        uint256 roundNo;
         bytes weights;
     }
     struct ModelScore {
@@ -18,18 +19,22 @@ contract FederatedLearning {
     // State Variables
     State public state;
     Model public globalModel;
+    uint256 public roundNo;
     uint256 public periodStart;
 
-    mapping(address => bool) private validated;
-    mapping(address => Model) private models;
-    mapping(address => uint256) private cummulativeScores;
+    mapping(uint256 => mapping(address => bool)) private hasValidated;
+    mapping(uint256 => mapping(address => Model)) private models;
+    mapping(uint256 => mapping(address => uint256)) private cummulativeScores;
+    mapping(uint256 => uint256) private totalModels;
+    mapping(uint256 => uint256) private totalValidations;
 
     // Constants
     uint256 constant pollPeriod = 60 * 50;
     uint256 constant validatePeriod = 60 * 10;
 
     constructor() {
-        globalModel = Model(msg.sender, "0x0");
+        roundNo = 1;
+        globalModel = Model(1, msg.data);
         periodStart = block.timestamp;
     }
 
@@ -56,8 +61,17 @@ contract FederatedLearning {
         _;
     }
 
-    function sendModel(bytes calldata weights) external onlyPolling {
-        models[msg.sender] = Model(msg.sender, weights);
+    function sendModel(bytes calldata weights)
+        external
+        onlyPolling
+        returns (bool)
+    {
+        if (models[roundNo][msg.sender].roundNo < roundNo) {
+            models[roundNo][msg.sender] = Model(roundNo, weights);
+            totalModels[roundNo]++;
+            return true;
+        }
+        return false;
     }
 
     function sendValidation(ModelScore[] calldata scores)
@@ -65,19 +79,22 @@ contract FederatedLearning {
         onlyValidating
         returns (bool)
     {
-        if (validated[msg.sender]) return false;
-        validated[msg.sender] = true;
+        if (!hasValidated[roundNo][msg.sender] && scores.length == totalModels[roundNo]) {
+            hasValidated[roundNo][msg.sender] = true;
+            totalValidations[roundNo]++;
 
-        for (uint256 i = 0; i < scores.length; i++) {
-            cummulativeScores[scores[i].owner] += scores[i].score;
+            for (uint256 i = 0; i < scores.length; i++) {
+                cummulativeScores[roundNo][scores[i].owner] += scores[i].score;
+            }
+            return true;
         }
 
-        return true;
+        return false;
     }
 
-    // Transition from one cycle (polling followed by validation) to the next 
-    // That is update the 
+    // Transition from one round (polling followed by validation) to the next
+    // That is update the scores
     function transition() private {
-        // :TODO
+        roundNo++;
     }
 }
