@@ -15,10 +15,9 @@ transaction_parameters = {
 
 
 class Node:
-    def __init__(self, gethHttp : str, datasetFile = None) -> None:
+    def __init__(self, gethHttp : str, datasetFile : str) -> None:
         self.w3 = self.connectNode(gethHttp)
-        if (datasetFile is not None):
-            self.learner = Learner(datasetFile)
+        self.learner = Learner(datasetFile)
 
     def connectNode(self, gethHttp : str):
         del os.environ['http_proxy']
