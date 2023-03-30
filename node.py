@@ -1,6 +1,5 @@
 import os
 import pickle
-from eth_typing import Address
 from learning import Learner
 from solcx import compile_source
 from web3 import Web3
@@ -8,29 +7,37 @@ from web3.contract.contract import Contract
 import numpy as np
 import time
 from constants import *
+import json
+
+transaction_parameters = {
+    'gas': GAS_LIMIT,
+}
 
 
 class Node:
-    def __init__(self, gethHttp, datasetFile) -> None:
-        self.connectNode(gethHttp)
-        self.learner = Learner(datasetFile)
+    def __init__(self, gethHttp : str, datasetFile = None) -> None:
+        self.w3 = self.connectNode(gethHttp)
+        if (datasetFile is not None):
+            self.learner = Learner(datasetFile)
 
-    def connectNode(self, gethHttp):
+    def connectNode(self, gethHttp : str):
         del os.environ['http_proxy']
         del os.environ['https_proxy']
 
-        self.w3 = Web3(Web3.HTTPProvider(gethHttp))
-        assert(self.w3.is_connected())
-        self.w3.eth.default_account = self.w3.eth.accounts[0]
+        w3 = Web3(Web3.HTTPProvider(gethHttp))
+        assert(w3.is_connected())
+        w3.eth.default_account = w3.eth.accounts[0]
 
-    def executeSmartContractFromFile(self, smartContractFile: str):
+        return w3
+
+    def executeSmartContractFromFile(self, smartContractFile: str, abiFile : str):
         # Owner node
         abi, bytecode = self.comipleContract(smartContractFile)
-        from json import dumps
-        open('abi.json', 'w').write(dumps(abi))
+        with open(abiFile, 'w') as f:
+            json.dump(abi, f)
         Contract = self.w3.eth.contract(abi=abi, bytecode=bytecode)
         tx_hash = Contract.constructor(
-            initialWeights=self.getModelBytes()).transact()
+            initialWeights=self.getModelBytes()).transact(transaction_parameters)
         tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
 
         return tx_receipt.contractAddress  # type: ignore
@@ -43,8 +50,7 @@ class Node:
     def comipleContract(smartContractFile: str):
         assert(os.path.isfile(smartContractFile))
 
-        compiled_sol = compile_source(
-            open(smartContractFile, 'r').read(), output_values=['abi', 'bin'])
+        compiled_sol = compile_source(open(smartContractFile, 'r').read(), output_values=['abi', 'bin'])
 
         _, contract_interface = compiled_sol.popitem()
         bytecode = contract_interface['bin']
@@ -52,13 +58,16 @@ class Node:
 
         return abi, bytecode
 
-    def connectSmartContract(self, contractAdd: str, smartContractFile: str):
+    def connectSmartContract(self, contractAdd: str, abiFile: str):
         self.contractAdd = contractAdd
-        abi, _ = self.comipleContract(smartContractFile)
+
+        with open(abiFile, 'r') as f:
+            abi = json.load(f)
 
         self.contract = self.w3.eth.contract(
             address=contractAdd, abi=abi  # type: ignore
         )
+        self.contract.functions.getState().call()
 
     def getGlobalModel(self):
         assert(isinstance(self.contract, Contract))
@@ -88,7 +97,7 @@ class Node:
         self.waitTill(POLLING)
 
         status = self.contract.functions.sendModel(
-            self.getModelBytes()).transact()
+            self.getModelBytes()).transact(transaction_parameters)  # type: ignore
         print(f"Send Model {status and 'successful' or 'failed'}")
 
     def validateModels(self):
@@ -106,21 +115,19 @@ class Node:
                 (address, int(self.learner.scoreModel(pickle.loads(weights)))))
 
         self.waitTill(VALIDATING)
-        status = self.contract.functions.sendValidation(modelScores).transact()
+        status = self.contract.functions.sendValidation(
+            modelScores).transact(transaction_parameters)  # type: ignore
         print(f"Validate Models {status and 'successful' or 'failed'}")
 
     def updateModel(self):
         self.learner.model = self.learner.makeModel(self.getGlobalModel())
         print(f"Updated Model to global Model, score: ", self.learner.score())
 
-    def waitTill(self, phase):
+    def waitTill(self, targetState):
         assert(isinstance(self.contract, Contract))
-        curPhase = self.contract.functions.state().call()
+        state, _, roundEnd = self.contract.functions.getState().call()
 
-        if curPhase != phase:
-            roundStart = self.contract.functions.roundStart().call()
-            timeLeft = roundStart + \
-                (curPhase == POLLING and POLLING_TIME or VALIDATION_TIME) - \
-                time.time() + TIME_MARGIN
+        if state != targetState:
+            timeLeft = roundEnd - time.time() + TIME_MARGIN
             if timeLeft > 0:
                 time.sleep(timeLeft)

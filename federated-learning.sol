@@ -22,6 +22,12 @@ contract FederatedLearning {
         Model[] models;
     }
 
+    struct ContractState {
+        State state;
+        uint256 roundNo;
+        uint256 roundEnd;
+    }
+
     enum ModelState {
         NotCreated,
         Created,
@@ -34,9 +40,9 @@ contract FederatedLearning {
     }
 
     // State Variables
-    uint256 public roundNo;
-    uint256 public roundStart;
     State public state;
+    uint256 public roundNo;
+    uint256 public roundEnd;
 
     address owner;
     mapping(uint256 => mapping(address => bool)) private hasValidated;
@@ -44,8 +50,8 @@ contract FederatedLearning {
     mapping(uint256 => address[]) private modelOwners;
 
     // Constants
-    uint256 constant POLLING_TIME = 30 ;
-    uint256 constant VALIDATION_Time = 30 ;
+    uint256 constant POLLING_TIME = 30;
+    uint256 constant VALIDATION_TIME = 30;
 
     constructor(bytes memory initialWeights) {
         owner = msg.sender;
@@ -60,23 +66,20 @@ contract FederatedLearning {
         });
         modelOwners[roundNo].push(owner);
 
-        startNewRound();
-    }
-
-    function getState()  public {
-        setState();
-
+        roundNo++;
+        roundEnd = block.timestamp + POLLING_TIME;
     }
 
     function setState() private {
-        uint256 timeSoFar = block.timestamp - roundStart;
-        if (state == State.Polling && timeSoFar > POLLING_TIME) {
-            state = State.Validating;
-        } else if (
-            state == State.Validating && timeSoFar > POLLING_TIME + VALIDATION_Time
-        ) {
-            startNewRound();
-            state = State.Polling;
+        if (block.timestamp >= roundEnd) {
+            if (state == State.Polling) {
+                roundEnd = block.timestamp + VALIDATION_TIME;
+                state = State.Validating;
+            } else {
+                roundNo++;
+                roundEnd = block.timestamp + POLLING_TIME;
+                state = State.Polling;
+            }
         }
     }
 
@@ -112,7 +115,7 @@ contract FederatedLearning {
 
     function sendValidation(ModelScore[] calldata scores)
         external
-        // onlyValidating
+        onlyValidating
         returns (bool)
     {
         return true;
@@ -143,30 +146,17 @@ contract FederatedLearning {
         return true;
     }
 
-    // Transition from one round (polling followed by validation) to the next
-    function startNewRound() private {
-        roundNo++;
-        roundStart = block.timestamp;
-    }
 
     function getGlobalModel() external view returns (GlobalModel memory) {
         uint256 lastRound = roundNo - 1;
         return GlobalModel({roundNo: lastRound, models: getModels(lastRound)});
     }
 
-    function getValidationModels()
-        external
-        view
-        returns (Model[] memory)
-    {
+    function getValidationModels() external view returns (Model[] memory) {
         return getModels(roundNo);
     }
 
-    function getModels(uint256 x)
-        private
-        view
-        returns (Model[] memory)
-    {
+    function getModels(uint256 x) private view returns (Model[] memory) {
         assert(x <= roundNo);
         Model[] memory modelList = new Model[](modelOwners[x].length);
 
@@ -176,5 +166,13 @@ contract FederatedLearning {
         }
 
         return modelList;
+    }
+
+    function getState() external view returns (ContractState memory) {
+        return ContractState({
+            state : state,
+            roundNo : roundNo,
+            roundEnd : roundEnd
+        });
     }
 }

@@ -10,9 +10,9 @@ if __name__ == "__main__":
 
     node = Node(gethHttp, datasetFile)
     contractAdd = open(CONTRACT_ADDRESS_FILE, 'r').read()
-    print("Read Contract Address")
+    print("Read Contract Address from", CONTRACT_ADDRESS_FILE)
 
-    node.connectSmartContract(contractAdd, SMART_CONTRACT_FILE)
+    node.connectSmartContract(contractAdd, ABI_FILE)
     print("Connected to node", nodeId)
 
     round = 1

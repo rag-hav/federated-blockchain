@@ -6,3 +6,5 @@ VALIDATION_TIME = 30
 TIME_MARGIN = 5
 SMART_CONTRACT_FILE = "federated-learning.sol"
 CONTRACT_ADDRESS_FILE = 'contract-address.txt'
+GAS_LIMIT = 1000000
+ABI_FILE = "abi.json"

@@ -4,10 +4,10 @@ proxy=$http_proxy
 unset http_proxy https_proxy
 
 num=$1
-dir=$(pwd)/miner$num
-
-
 id=miner$num
+dir=$(pwd)/$id
+
+
 port=30302
 http_port=8545
 authrpc_port=8550
