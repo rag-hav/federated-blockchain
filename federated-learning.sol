@@ -44,7 +44,6 @@ contract FederatedLearning {
     uint256 public roundNo;
     uint256 public roundEnd;
 
-    address owner;
     mapping(uint256 => mapping(address => bool)) private hasValidated;
     mapping(uint256 => mapping(address => Model)) private models;
     mapping(uint256 => address[]) private modelOwners;
@@ -52,25 +51,24 @@ contract FederatedLearning {
     // Constants
     uint256 constant POLLING_TIME = 30;
     uint256 constant VALIDATION_TIME = 30;
+    uint256 constant SCORE_SCALE_FACTOR = 1000000000;
 
     constructor(bytes memory initialWeights) {
-        owner = msg.sender;
-
         // Intialize the global model
         roundNo = 0;
-        models[roundNo][owner] = Model({
+        models[roundNo][msg.sender] = Model({
             owner: msg.sender,
             weights: initialWeights,
-            score: 100000000,
+            score: SCORE_SCALE_FACTOR,
             state: ModelState.Created
         });
-        modelOwners[roundNo].push(owner);
+        modelOwners[roundNo].push(msg.sender);
 
         roundNo++;
         roundEnd = block.timestamp + POLLING_TIME;
     }
 
-    function setState() private {
+    function setState() public {
         if (block.timestamp >= roundEnd) {
             if (state == State.Polling) {
                 roundEnd = block.timestamp + VALIDATION_TIME;
@@ -118,7 +116,6 @@ contract FederatedLearning {
         onlyValidating
         returns (bool)
     {
-        return true;
 
         if (
             hasValidated[roundNo][msg.sender] ||

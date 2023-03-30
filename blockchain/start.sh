@@ -22,11 +22,12 @@ geth --identity $id --networkid 42 --datadir $dir \
     --nodiscover --allow-insecure-unlock --mine --http --port $port --http.corsdomain "*" \
     --http.port $http_port --unlock 0 \
     --authrpc.port $authrpc_port \
+    --verbosity 5 \
     --password $dir/password.sec --ipcpath $dir/ipc &>$id.log &
 
-
 sleep 5s
-geth --preload preload.js attach $dir/ipc
+# geth --preload preload.js attach $dir/ipc
+geth attach $dir/ipc
 
 wait
 

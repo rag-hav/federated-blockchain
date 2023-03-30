@@ -10,8 +10,11 @@ if __name__ == "__main__":
 
     node = Node(gethHttp, datasetFile)
 
-    contractAdd = node.executeSmartContractFromFile(SMART_CONTRACT_FILE, ABI_FILE)
+    status, contractAdd = node.executeSmartContractFromFile(SMART_CONTRACT_FILE, ABI_FILE)
 
-    open(CONTRACT_ADDRESS_FILE, 'w').write(str(contractAdd))
+    if status == 1:
+        open(CONTRACT_ADDRESS_FILE, 'w').write(str(contractAdd))
+        print(f"Wrote contract address to {CONTRACT_ADDRESS_FILE } file")
+    else:
+        print(f"Deploy Failed!")
 
-    print(f"Wrote contract address to {CONTRACT_ADDRESS_FILE } file")
