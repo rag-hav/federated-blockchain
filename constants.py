@@ -1,0 +1,8 @@
+
+POLLING = 0
+VALIDATING = 1
+POLLING_TIME = 30
+VALIDATION_TIME = 30
+TIME_MARGIN = 5
+SMART_CONTRACT_FILE = "federated-learning.sol"
+CONTRACT_ADDRESS_FILE = 'contract-address.txt'

@@ -1,3 +1,6 @@
 .ipynb_checkpoints
 blockchain/miner*
 dataset/raw
+abi.json
+__pycache__
+contract-address.txt
