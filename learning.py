@@ -30,5 +30,5 @@ class Learner:
     def score(self):
         raise NotImplemented()
 
-    def scoreModel(self, weights):
+    def validateModel(self, weights):
         raise NotImplemented()

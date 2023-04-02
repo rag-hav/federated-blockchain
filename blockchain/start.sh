@@ -17,7 +17,7 @@ let "http_port+=num"
 let "authrpc_port+=num"
 
 echo "Starting ethereum node from directory: ${dir} with name ${id} on port ${port} and http_port ${http_port}"
-
+# running node
 geth --identity $id --networkid 42 --datadir $dir \
     --nodiscover --allow-insecure-unlock --mine --http --port $port --http.corsdomain "*" \
     --http.port $http_port --unlock 0 \

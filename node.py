@@ -1,6 +1,6 @@
 import os
 import pickle
-from logistic import LogisticLearner
+from multilayerPerceptron import MultilayerPerceptronLearner
 from solcx import compile_source
 from web3 import Web3
 from web3.contract.contract import Contract
@@ -19,7 +19,7 @@ class Node:
     def __init__(self, gethHttp: str, datasetFile: str) -> None:
         self.w3 = self.connectNode(gethHttp)
         self.contract = None
-        self.learner = LogisticLearner(datasetFile)
+        self.learner = MultilayerPerceptronLearner(datasetFile)
 
     def connectNode(self, gethHttp: str):
         del os.environ['http_proxy']
@@ -127,7 +127,7 @@ class Node:
 
         for address, weights, _, _ in validationModels:
             modelScores.append(
-                (address, int(SCORE_SCALE_FACTOR * self.learner.scoreModel(pickle.loads(weights)))))
+                (address, int(SCORE_SCALE_FACTOR * self.learner.validateModel(pickle.loads(weights)))))
 
         print(modelScores)
 
@@ -158,7 +158,7 @@ class Node:
         if state != targetState:
             timeLeft = roundEnd - now + TIME_MARGIN
             if timeLeft > 0:
-                print(f"Waiting {timeLeft} seconds till {targetState}")
+                print(f"Waiting {timeLeft} seconds till {'validation' if targetState == 1 else 'polling'}")
                 time.sleep(timeLeft)
             else:
                 self.updateState()

@@ -28,7 +28,7 @@ class LogisticLearner(Learner):
     def score(self):
         return self.model.score(self.X, self.Y)
 
-    def scoreModel(self, weights):
+    def validateModel(self, weights):
         model = self.makeModel(weights)
         return model.score(self.X, self.Y)
 

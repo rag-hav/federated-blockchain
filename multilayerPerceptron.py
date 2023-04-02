@@ -3,7 +3,7 @@ from sklearn.neural_network import MLPClassifier
 from learning import Learner
 
 
-class MultilayerPerceptron(Learner):
+class MultilayerPerceptronLearner(Learner):
     def __init__(self, datasetFile):
         super().__init__(datasetFile)
 
@@ -11,7 +11,7 @@ class MultilayerPerceptron(Learner):
         model = MLPClassifier(hidden_layer_sizes=(
             10, 5, 2), alpha=0.0001, random_state=1)
         if weights is not None:
-            model.set_params(params=weights)
+            model.set_params(weights)
         model.classes_ = np.array([False, True])
 
         return model
@@ -28,6 +28,6 @@ class MultilayerPerceptron(Learner):
         assert(isinstance(self.model, MLPClassifier))
         return self.model.score(self.X, self.Y)
 
-    def scoreModel(self, weights):
+    def validateModel(self, weights):
         model = self.makeModel(weights)
         return model.score(self.X, self.Y)
