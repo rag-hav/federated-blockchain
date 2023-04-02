@@ -1,6 +1,6 @@
 import os
 import pickle
-from learning import Learner
+from logistic import LogisticLearner
 from solcx import compile_source
 from web3 import Web3
 from web3.contract.contract import Contract
@@ -19,7 +19,7 @@ class Node:
     def __init__(self, gethHttp: str, datasetFile: str) -> None:
         self.w3 = self.connectNode(gethHttp)
         self.contract = None
-        self.learner = Learner(datasetFile)
+        self.learner = LogisticLearner(datasetFile)
 
     def connectNode(self, gethHttp: str):
         del os.environ['http_proxy']
@@ -138,7 +138,7 @@ class Node:
         print("Validation Successfull")
 
     def updateModel(self):
-        self.learner.model = self.learner.makeModel(self.getGlobalModel())
+        self.learner.model = self.learner.makeModel(self.getGlobalModel()) #type: ignore
         print(f"Updated Model to global Model, score: ", self.learner.score())
 
     def updateState(self):
