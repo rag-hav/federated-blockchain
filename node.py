@@ -133,7 +133,7 @@ class Node:
 
         self.waitTill(VALIDATING)
         self.makeTransaction(self.contract.functions.sendValidation(
-            modelScores))
+            modelScores, self.learner.datasetSize))
 
         print("Validation Successfull")
 

@@ -14,6 +14,7 @@ class Learner:
 
         self.X = self.df[FEATURES]
         self.Y = self.df[CLASS]
+        self.datasetSize = self.X.shape[0]
         scaler = StandardScaler()
         self.X = scaler.fit_transform(self.X)
         self.model = self.makeModel()

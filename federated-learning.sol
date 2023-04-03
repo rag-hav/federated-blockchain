@@ -51,7 +51,7 @@ contract FederatedLearning {
     // Constants
     uint256 constant POLLING_TIME = 30;
     uint256 constant VALIDATION_TIME = 30;
-    uint256 constant SCORE_SCALE_FACTOR = 1000000000;
+    uint256 constant SCORE_SCALE_FACTOR = 1000000;
 
     constructor(bytes memory initialWeights) {
         // Intialize the global model
@@ -111,7 +111,7 @@ contract FederatedLearning {
         return false;
     }
 
-    function sendValidation(ModelScore[] calldata scores)
+    function sendValidation(ModelScore[] calldata scores, uint256 sampleCount)
         external
         onlyValidating
         returns (bool)
@@ -119,7 +119,8 @@ contract FederatedLearning {
 
         if (
             hasValidated[roundNo][msg.sender] ||
-            scores.length != modelOwners[roundNo].length
+            scores.length != modelOwners[roundNo].length ||
+            sampleCount > 1000000000
         ) return false;
 
         for (uint256 i = 0; i < scores.length; i++) {
@@ -138,7 +139,7 @@ contract FederatedLearning {
 
         hasValidated[roundNo][msg.sender] = true;
         for (uint256 i = 0; i < scores.length; i++) {
-            models[roundNo][scores[i].owner].score += scores[i].score;
+            models[roundNo][scores[i].owner].score += scores[i].score * sampleCount;
         }
         return true;
     }
