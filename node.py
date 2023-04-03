@@ -1,7 +1,6 @@
 import os
 import pickle
-# from multilayerPerceptron import MultilayerPerceptronLearner
-from learning import Learner
+from multilayerPerceptron import MultilayerPerceptronLearner
 from solcx import compile_source
 from web3 import Web3
 from web3.contract.contract import Contract
@@ -20,7 +19,7 @@ class Node:
     def __init__(self, gethHttp: str, datasetFile: str) -> None:
         self.w3 = self.connectNode(gethHttp)
         self.contract = None
-        self.learner = Learner(datasetFile)
+        self.learner = MultilayerPerceptronLearner(datasetFile)
 
     def connectNode(self, gethHttp: str):
         del os.environ['http_proxy']
@@ -72,9 +71,9 @@ class Node:
             address=contractAdd, abi=abi  # type: ignore
         )
 
-    #return state, roundNo, roundEnd
-    def getState(self):
-        return self.contract.functions.getState().call(transaction_parameters)
+        # Check Connection
+        self.contract.functions.getState().call(transaction_parameters)
+        print("Successfully connected to contract")
 
     def getGlobalModel(self):
         assert(isinstance(self.contract, Contract))
@@ -164,4 +163,3 @@ class Node:
             else:
                 self.updateState()
                 self.waitTill(targetState)
-    

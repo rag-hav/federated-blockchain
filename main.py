@@ -15,7 +15,7 @@ if __name__ == "__main__":
     node.connectSmartContract(contractAdd, ABI_FILE)
     print("Connected to node", nodeId)
 
-    _, round, _ = node.getState()
+    round = 1
     while True:
         print("Starting round", round)
         node.train()
