@@ -36,3 +36,41 @@
     transform: rotate(360deg);
   }
 }
+
+.abc{
+  display:flex;
+  flex-direction: row;
+  width:100%;
+}
+
+.def{
+  display:flex;
+  padding: 36px;
+  flex-direction:column;
+  align-items:center;
+  font-size:24px;
+  width:50%;
+}
+
+#data {
+  font-family: Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 16px;
+  justify-content: center;
+}
+
+#data th {
+  border: 1px solid;
+  padding: 8px;
+  text-align: center;
+}
+
+.graph {
+  font-size: 16px;
+  padding: 100px;;
+}
+.canvas {
+  width:350px;
+  height:350px;
+}
