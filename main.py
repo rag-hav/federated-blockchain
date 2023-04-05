@@ -1,6 +1,7 @@
 import sys
 from node import Node
 from constants import *
+from time import sleep, time
 
 if __name__ == "__main__":
     assert(len(sys.argv) > 1)
@@ -15,11 +16,27 @@ if __name__ == "__main__":
     node.connectSmartContract(contractAdd, ABI_FILE)
     print("Connected to node", nodeId)
 
-    round = 1
     while True:
-        print("Starting round", round)
-        node.train()
-        node.sendModel()
-        node.validateModels()
-        node.updateModel()
-        round += 1
+        node.updateState()
+
+        print(
+            f"\nRound Number {node.roundNo} in state {node.state and 'VALIDATING' or 'POLLING'}")
+
+        if node.state == POLLING:
+            node.train()
+            try:
+                node.sendModel()
+                node.waitTill(VALIDATING)
+            except Exception as e:
+                print("Send Models failed!")
+                print(e)
+
+        else:
+            node.validateModels()
+            # State might have changed during training
+            try:
+                node.sendValidations()
+                node.waitTill(POLLING)
+            except Exception as e:
+                print("Send Validations failed!")
+                print(e)

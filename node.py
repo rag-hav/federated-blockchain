@@ -1,25 +1,26 @@
 import os
-import pickle
+from time import time, sleep
 from multilayerPerceptron import MultilayerPerceptronLearner
+from logistic import LogisticLearner
 from solcx import compile_source
 from web3 import Web3
 from web3.contract.contract import Contract
 from web3.types import TxParams
-import numpy as np
-import time
 from constants import *
 import json
-from pprint import pprint
 
 
-transaction_parameters = TxParams({ 'gas': GAS_LIMIT }) #type: ignore
+transaction_parameters = TxParams({'gas': GAS_LIMIT})  # type: ignore
 
 
 class Node:
     def __init__(self, gethHttp: str, datasetFile: str) -> None:
         self.w3 = self.connectNode(gethHttp)
         self.contract = None
+        self.state, self.roundNo, self.roundEnd = -1, -1, -1
+        # self.learner = LogisticLearner(datasetFile)
         self.learner = MultilayerPerceptronLearner(datasetFile)
+        self.validationScores = []
 
     def connectNode(self, gethHttp: str):
         del os.environ['http_proxy']
@@ -39,14 +40,10 @@ class Node:
             json.dump(abi, f)
         Contract = self.w3.eth.contract(abi=abi, bytecode=bytecode)
         tx_hash = Contract.constructor(
-            initialWeights=self.getModelBytes()).transact(transaction_parameters)
+            initialWeights=self.learner.getModelBytes()).transact(transaction_parameters)
         tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
 
         return tx_receipt.status, tx_receipt.contractAddress  # type: ignore
-
-    def getModelBytes(self):
-        # print(self.learner.getModel())
-        return pickle.dumps(self.learner.getModel())
 
     @staticmethod
     def comipleContract(smartContractFile: str):
@@ -72,41 +69,26 @@ class Node:
         )
 
         # Check Connection
-        self.contract.functions.getState().call(transaction_parameters)
+        self.updateState()
         print("Successfully connected to contract")
 
     def getGlobalModel(self):
         assert(isinstance(self.contract, Contract))
-
         roundNo, raw_models = self.contract.functions.getGlobalModel().call(
             transaction_parameters)
-        # raw_models = [( bytes weights, uint256 score )]
-
-        coefficients, intercepts, scores = [], [], []
-        for _, weights, score, _ in raw_models:
-            coef, intercept = pickle.loads(weights)
-            coefficients.append(coef)
-            intercepts.append(intercept)
-            scores.append(score)
-
-        print(scores)
-
-        coefAvg = np.average(coefficients, weights=scores, axis=0)
-        interceptAvg = np.average(intercepts, weights=scores, axis=0)
-
-        # print(coefAvg, interceptAvg)
-        return coefAvg, interceptAvg
+        assert(roundNo == self.roundNo - 1)
+        return raw_models
 
     def train(self):
+        self.updateModel()
         self.learner.train()
         print(f"Finished Training Model, score: ", self.learner.score())
 
     def sendModel(self):
         assert(isinstance(self.contract, Contract))
-        self.waitTill(POLLING)
 
         self.makeTransaction(
-            self.contract.functions.sendModel(self.getModelBytes()))
+            self.contract.functions.sendModel(self.learner.getModelBytes()))
         print("Send Model Successfull")
 
     def makeTransaction(self, transaction):
@@ -116,7 +98,6 @@ class Node:
 
     def validateModels(self):
         assert(isinstance(self.contract, Contract))
-        self.waitTill(VALIDATING)
 
         # [(address, weights)]
         validationModels = self.contract.functions.getValidationModels().call(
@@ -127,39 +108,45 @@ class Node:
 
         for address, weights, _, _ in validationModels:
             modelScores.append(
-                (address, int(SCORE_SCALE_FACTOR * self.learner.validateModel(pickle.loads(weights)))))
+                (address, int(SCORE_SCALE_FACTOR * self.learner.scoreModel(weights))))
 
-        print(modelScores)
+        self.validationScores = modelScores
 
-        self.waitTill(VALIDATING)
+    def sendValidations(self):
+        assert(isinstance(self.contract, Contract))
         self.makeTransaction(self.contract.functions.sendValidation(
-            modelScores, self.learner.datasetSize))
+            self.validationScores, self.learner.datasetSize))
 
-        print("Validation Successfull")
+        print("Send Validation Successfull")
 
     def updateModel(self):
-        self.learner.model = self.learner.makeModel(self.getGlobalModel()) #type: ignore
+        self.learner.updateModel(self.getGlobalModel())
         print(f"Updated Model to global Model, score: ", self.learner.score())
 
     def updateState(self):
         assert(isinstance(self.contract, Contract))
-        self.makeTransaction(self.contract.functions.setState())
+        self.state, self.roundNo, self.roundEnd, self.stateLock = self.contract.functions.getState().call(
+            transaction_parameters)
+
+        if not self.stateLock and time() > self.roundEnd:
+            # The round has ended
+            self.stateLock = True
+            self.state = int(not self.state)
 
     def waitTill(self, targetState):
-        assert(isinstance(self.contract, Contract))
-        state, _, roundEnd = self.contract.functions.getState().call(transaction_parameters)
-        now = int(time.time())
-        # print(now - roundEnd)
-        # print(f"{state=} {roundEnd=} {now=}")
+        self.updateState()
 
-        if now >= roundEnd:
-            state = int(not state)
+        if (self.state != targetState):
 
-        if state != targetState:
-            timeLeft = roundEnd - now + TIME_MARGIN
-            if timeLeft > 0:
-                print(f"Waiting {timeLeft} seconds till {'validation' if targetState == 1 else 'polling'}")
-                time.sleep(timeLeft)
-            else:
-                self.updateState()
-                self.waitTill(targetState)
+            assert(not self.stateLock)
+            timeLeft = 2 + self.roundEnd - int(time())
+            print(f"Sleeping for {timeLeft}")
+            sleep(timeLeft)
+
+    # def hasAlreadyParticipated(self):
+    #     assert(isinstance(self.contract, Contract))
+    #     self.state, self.roundNo, roundEnd, stateLock = self.contract.functions.getState().call(
+    #         transaction_parameters)
+
+    #     if (self.state == POLLING):
+    #         return
