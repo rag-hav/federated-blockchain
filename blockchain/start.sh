@@ -25,7 +25,7 @@ geth --identity $id --networkid 42 --datadir $dir \
     --verbosity 5 \
     --password $dir/password.sec --ipcpath $dir/ipc &>$id.log &
 
-sleep 5s
+sleep 2s
 # geth --preload preload.js attach $dir/ipc
 geth attach $dir/ipc
 
