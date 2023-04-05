@@ -21,10 +21,12 @@ CLASS = 'label'
 
 class IotDataset(Dataset):
     def __init__(self, file_name):
-        price_df = pd.read_csv(file_name)
+        df = pd.read_csv(file_name)
 
-        x = price_df[FEATURES].values
-        y = price_df[CLASS].values
+        x = df[FEATURES].values
+        y = df[CLASS].values
+
+        self.validateOnly = df[CLASS].value_counts().shape[0] < 2
 
         self.x_train = torch.tensor(x, dtype=torch.float32)
         self.y_train = torch.tensor(y, dtype=torch.long)
@@ -34,6 +36,7 @@ class IotDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.x_train[idx], self.y_train[idx]
+
 
 
 class Net(nn.Module):
@@ -56,6 +59,7 @@ class Net(nn.Module):
 class MultilayerPerceptronLearner():
     def __init__(self, datasetFile):
         dataset = IotDataset(datasetFile)
+        self.validateOnly = dataset.validateOnly
         # validation_size = len(dataset) // 10
         self.datasetSize = len(dataset)
         # train_dataset, validation_dataset = random_split(
@@ -115,6 +119,9 @@ class MultilayerPerceptronLearner():
 
 
     def train(self):
+        if self.validateOnly:
+            # If dataset does not contain both classes, do not train
+            return
         criterion = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(self.model.parameters())
         self.model.train()

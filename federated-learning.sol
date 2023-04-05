@@ -183,6 +183,7 @@ contract FederatedLearning {
             });
     }
 
+    // Not significant toward FL, just gives idea of learning
     function getAverageScore(uint256 x)
         external
         view
