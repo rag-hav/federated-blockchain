@@ -29,7 +29,20 @@ class Node {
   };
 
   getState = async function () {
-    return await this.contract.methods.getState().call();
+    try {
+      return await this.contract.methods.getState().call();
+    } catch (e) {
+      console.log(e);
+      return [];
+    }
+  };
+  getRoundDetails = async function () {
+    try {
+      return await this.contract.methods.getRoundDetails(15).call();
+    } catch (e) {
+      console.log(e);
+      return [];
+    }
   };
 }
 

@@ -11,6 +11,19 @@ import { Node } from "./node.js";
 let node = new Node();
 node.connectToContract();
 
+function Timer(props){
+  const [timeLeft, setTimeLeft] = useState(0);
+  const getSecondsTill = (time)=>{return Date.now()/1000 - time;}
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTimeLeft(getSecondsTill(props.targetTime));
+    }, 5000);
+    return () => clearInterval(id);
+  });
+  return timeLeft;
+
+}
+
 function App() {
   const [state, setState] = useState({
     roundEnd: "loading",
@@ -19,20 +32,38 @@ function App() {
     stateLock: false,
   });
 
+  const [roundDetails, setRoundDetails] = useState({
+    arr: [],
+  });
+
   useEffect(() => {
     const id = setInterval(() => {
       node.getState().then((state) => setState(state));
+      node.getRoundDetails().then((detail) => setRoundDetails({arr : detail}));
     }, 5000);
     return () => clearInterval(id);
   });
 
-  const chartData = [
-    {
-      color: "steelblue",
-      points: Data,
-    },
-  ];
+  const getChartData = (arr)=>{
+    let res = [
+      {
+        color: "steelblue",
+        points:[],
+      },
+    ];
 
+    for (let d of arr) {
+      if (d.pollCount * d.validationCount > 0)
+      res[0].points.push({
+        x: d.roundNo,
+        y: d.scoreSum / (d.pollCount * d.validationCount * 10000),
+      });
+    }
+
+    return res;
+  };
+
+  
   return (
     <div className="abc">
       <div className="def">
@@ -40,15 +71,20 @@ function App() {
           <dt className="col-sm-3" style={{ marginTop: "10px" }}>
             <b> Current round: </b> <span>{state.roundNo}</span>
           </dt>
-
           <dt className="col-sm-3" style={{ marginTop: "10px" }}>
             <b> State: </b>
-            <span>{state.state ? "Validating" : "Polling"}</span>
+            <span> {state.state == 1 ? "Validating" : "Polling"} </span>
           </dt>
-
           <dt className="col-sm-3" style={{ marginTop: "10px" }}>
-            <b> Round end: </b>
-            <span>{state.roundEnd}</span>
+            
+            <b> Round end: </b> <span> {
+              state.stateLock ? 'infinity' : <Timer targetTime = {parseInt(state.roundEnd)}/>
+              } </span>
+            
+
+            
+
+          
           </dt>
         </dl>
         <div className="graph">
@@ -56,7 +92,7 @@ function App() {
           <LineChart
             width={600}
             height={400}
-            data={chartData}
+            data={getChartData(roundDetails.arr)}
             xLabel={"Rounds"}
             yLabel={"Average Score"}
             yMax={"100.0"}
@@ -68,68 +104,25 @@ function App() {
           />
         </div>
       </div>
-
       <div className="def">
         <table id="data">
-          <tbody>
+          <thead>
             <tr>
               <th> Round </th> <th> Poll Count </th> <th> Validation Count </th>
               <th> Average Score </th>
             </tr>
-            <tr>
-              <th> 1 </th> <th> 3 </th> <th> 3 </th> <th> 70.19 </th>
-            </tr>
-            <tr>
-              <th> 2 </th> <th> 2 </th> <th> 2 </th> <th> 71.22 </th>
-            </tr>
-            <tr>
-              <th> 3 </th> <th> 2 </th> <th> 2 </th> <th> 69.90 </th>
-            </tr>
-            <tr>
-              <th> 4 </th> <th> 3 </th> <th> 3 </th> <th> 72.11 </th>
-            </tr>
-            <tr>
-              <th> 5 </th> <th> 3 </th> <th> 2 </th> <th> 70.99 </th>
-            </tr>
-            <tr>
-              <th> 6 </th> <th> 4 </th> <th> 4 </th> <th> 70.09 </th>
-            </tr>
-            <tr>
-              <th> 7 </th> <th> 2 </th> <th> 2 </th> <th> 71.22 </th>
-            </tr>
-            <tr>
-              <th> 8 </th> <th> 2 </th> <th> 2 </th> <th> 71.99 </th>
-            </tr>
-            <tr>
-              <th> 9 </th> <th> 2 </th> <th> 2 </th> <th> 70.99 </th>
-            </tr>
-            <tr>
-              <th> 10 </th> <th> 2 </th> <th> 1 </th> <th> 69.90 </th>
-            </tr>
-            <tr>
-              <th> 11 </th> <th> 2 </th> <th> 2 </th> <th> 72.11 </th>
-            </tr>
-            <tr>
-              <th> 12 </th> <th> 1 </th> <th> 1 </th> <th> 70.99 </th>
-            </tr>
-            <tr>
-              <th> 13 </th> <th> 2 </th> <th> 2 </th> <th> 68.02 </th>
-            </tr>
-            <tr>
-              <th> 14 </th> <th> 6 </th> <th> 5 </th> <th> 70.19 </th>
-            </tr>
-            <tr>
-              <th> 15 </th> <th> 6 </th> <th> 5 </th> <th> 69.07 </th>
-            </tr>
-            <tr>
-              <th> 16 </th> <th> 6 </th> <th> 5 </th> <th> 66.99 </th>
-            </tr>
-            <tr>
-              <th> 17 </th> <th> 6 </th> <th> 5 </th> <th> 69.77 </th>
-            </tr>
-            <tr>
-              <th> 18 </th> <th> 6 </th> <th> 5 </th> <th> 70.11 </th>
-            </tr>
+          </thead>
+
+          <tbody>
+          {
+            roundDetails.arr.map((detail) =>{
+              return (
+                <tr key = {detail.roundNo}>
+                  <th>{detail.roundNo} </th> <th> {detail.pollCount} </th> <th> {detail.validationCount} </th> <th> {detail.scoreSum/(detail.pollCount * detail.validationCount * 10000)} </th>
+                </tr>
+              );
+            })
+          }
           </tbody>
         </table>
       </div>

@@ -29,9 +29,11 @@ contract FederatedLearning {
         bool stateLock;
     }
 
-    struct AverageScore {
+    struct RoundDetail {
         uint256 scoreSum;
-        uint256 scoreCount;
+        uint256 roundNo;
+        uint256 pollCount;
+        uint256 validationCount;
     }
 
     enum ModelState {
@@ -115,9 +117,10 @@ contract FederatedLearning {
         setState();
     }
 
-    function sendValidation(ModelScore[] calldata scores, uint256 sampleCount)
-        external
-    {
+    function sendValidation(
+        ModelScore[] calldata scores,
+        uint256 sampleCount
+    ) external {
         setState();
         require(state == State.Validating);
         // A node can only validate models once
@@ -143,8 +146,8 @@ contract FederatedLearning {
         hasValidated[roundNo][msg.sender] = true;
         for (uint256 i = 0; i < scores.length; i++) {
             models[roundNo][scores[i].owner].score +=
-                scores[i].score *
-                sampleCount; // Potential Security risk, bad actor can claim high sample count
+                scores[i].score;
+                // sampleCount; // Potential Security risk, bad actor can claim high sample count
         }
 
         validatorsCount[roundNo]++;
@@ -184,24 +187,25 @@ contract FederatedLearning {
     }
 
     // Not significant toward FL, just gives idea of learning
-    function getAverageScore(uint256 x)
-        external
-        view
-        returns (AverageScore memory)
-    {
-        // Average score only possible for present or past rounds
-        require(x <= roundNo);
-
-        uint256 totalScore = 0;
-
-        for (uint256 i = 0; i < pollers[x].length; i++) {
-            totalScore += models[x][pollers[x][i]].score;
-        }
-
-        return
-            AverageScore({
+    function getRoundDetails(
+        uint256 x
+    ) external view returns (RoundDetail[] memory) {
+        // round detail only possible for present or past rounds
+        if (x > roundNo) x = roundNo;
+        RoundDetail[] memory detail = new RoundDetail[](x);
+        for (uint256 i = 0; i < x; i++) {
+            uint256 totalScore = 0;
+            uint256 round = roundNo - i;
+            for (uint256 j = 0; j < pollers[round].length; j++) {
+                totalScore += models[round][pollers[round][j]].score;
+            }
+            detail[i] = RoundDetail({
                 scoreSum: totalScore,
-                scoreCount: pollers[x].length * validatorsCount[x]
+                roundNo: round,
+                pollCount: pollers[round].length,
+                validationCount: validatorsCount[round]
             });
+        }
+        return detail;
     }
 }

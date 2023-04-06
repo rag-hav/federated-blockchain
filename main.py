@@ -21,22 +21,26 @@ if __name__ == "__main__":
 
         print(
             f"\nRound Number {node.roundNo} in state {node.state and 'VALIDATING' or 'POLLING'}")
-
+        startTime = time()
+        endTime = 0
         if node.state == POLLING:
             node.train()
             try:
                 node.sendModel()
-                node.waitTill(VALIDATING)
             except Exception as e:
                 print("Send Models failed!")
                 print(e)
+            endTime = time()
+            node.waitTill(VALIDATING)
 
         else:
             node.validateModels()
             # State might have changed during training
             try:
                 node.sendValidations()
-                node.waitTill(POLLING)
             except Exception as e:
                 print("Send Validations failed!")
                 print(e)
+            endTime = time()
+            node.waitTill(POLLING)
+        print(f"timetaken {startTime - endTime}")
