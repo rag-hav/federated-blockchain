@@ -3,17 +3,17 @@ import "./App.css";
 // import Chart from "chart.js/auto";
 // import { CategoryScale } from "chart.js";
 import React, { useEffect, useState } from "react";
-import { Data } from "./utils/Data.js";
 import LineChart from "react-linechart";
 import "../node_modules/react-linechart/dist/styles.css";
 import { Node } from "./node.js";
 
 let node = new Node();
-node.connectToContract();
 
-function Timer(props){
+function Timer(props) {
   const [timeLeft, setTimeLeft] = useState(0);
-  const getSecondsTill = (time)=>{return Date.now()/1000 - time;}
+  const getSecondsTill = (time) => {
+    return Date.now() / 1000 - time;
+  };
   useEffect(() => {
     const id = setInterval(() => {
       setTimeLeft(getSecondsTill(props.targetTime));
@@ -21,7 +21,6 @@ function Timer(props){
     return () => clearInterval(id);
   });
   return timeLeft;
-
 }
 
 function App() {
@@ -39,31 +38,30 @@ function App() {
   useEffect(() => {
     const id = setInterval(() => {
       node.getState().then((state) => setState(state));
-      node.getRoundDetails().then((detail) => setRoundDetails({arr : detail}));
+      node.getRoundDetails().then((detail) => setRoundDetails({ arr: detail }));
     }, 5000);
     return () => clearInterval(id);
   });
 
-  const getChartData = (arr)=>{
+  const getChartData = (arr) => {
     let res = [
       {
         color: "steelblue",
-        points:[],
+        points: [],
       },
     ];
 
     for (let d of arr) {
       if (d.pollCount * d.validationCount > 0)
-      res[0].points.push({
-        x: d.roundNo,
-        y: d.scoreSum / (d.pollCount * d.validationCount * 10000),
-      });
+        res[0].points.push({
+          x: d.roundNo,
+          y: d.scoreSum / (d.pollCount * d.validationCount * 10000),
+        });
     }
 
     return res;
   };
 
-  
   return (
     <div className="abc">
       <div className="def">
@@ -73,18 +71,17 @@ function App() {
           </dt>
           <dt className="col-sm-3" style={{ marginTop: "10px" }}>
             <b> State: </b>
-            <span> {state.state == 1 ? "Validating" : "Polling"} </span>
+            <span> {state.state == "1" ? "Validating" : "Polling"} </span>
           </dt>
           <dt className="col-sm-3" style={{ marginTop: "10px" }}>
-            
-            <b> Round end: </b> <span> {
-              state.stateLock ? 'infinity' : <Timer targetTime = {parseInt(state.roundEnd)}/>
-              } </span>
-            
-
-            
-
-          
+            <b> Round end: </b>
+            <span>
+              {state.stateLock ? (
+                "infinity"
+              ) : (
+                <Timer targetTime={parseInt(state.roundEnd)} />
+              )}
+            </span>
           </dt>
         </dl>
         <div className="graph">
@@ -114,15 +111,18 @@ function App() {
           </thead>
 
           <tbody>
-          {
-            roundDetails.arr.map((detail) =>{
+            {roundDetails.arr.map((detail) => {
               return (
-                <tr key = {detail.roundNo}>
-                  <th>{detail.roundNo} </th> <th> {detail.pollCount} </th> <th> {detail.validationCount} </th> <th> {detail.scoreSum/(detail.pollCount * detail.validationCount * 10000)} </th>
+                <tr key={detail.roundNo}>
+                  <th>{detail.roundNo} </th> <th> {detail.pollCount} </th>
+                  <th> {detail.validationCount} </th>
+                  <th>
+                    {detail.scoreSum /
+                      (detail.pollCount * detail.validationCount * 10000)}
+                  </th>
                 </tr>
               );
-            })
-          }
+            })}
           </tbody>
         </table>
       </div>

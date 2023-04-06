@@ -7,10 +7,14 @@ class Node {
   // let contract;
   constructor() {
     this.contract = null;
+    this.isReady = this._connectToContract();
   }
 
-  connectToContract = async function () {
+
+
+  _connectToContract = async function () {
     if (this.contract != null) return;
+
     var web3 = new Web3(Web3.givenProvider || URLProvider);
 
     if (await web3.eth.net.isListening()) {
@@ -18,18 +22,18 @@ class Node {
     } else {
       console.log("Wow. Something went wrong: ");
     }
+    console.log("trying jor se");
+
     Contract.setProvider(URLProvider);
     let abi = await (await fetch("abi.json")).json();
     let contractAddress = await (await fetch("contract-address.txt")).text();
-
-    // console.log(abi);
-    // console.log(contractAddress);
 
     this.contract = new Contract(abi, contractAddress);
   };
 
   getState = async function () {
     try {
+      await this.isReady;
       return await this.contract.methods.getState().call();
     } catch (e) {
       console.log(e);
@@ -38,6 +42,7 @@ class Node {
   };
   getRoundDetails = async function () {
     try {
+      await this.isReady;
       return await this.contract.methods.getRoundDetails(15).call();
     } catch (e) {
       console.log(e);

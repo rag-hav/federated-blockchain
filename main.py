@@ -27,20 +27,20 @@ if __name__ == "__main__":
             node.train()
             try:
                 node.sendModel()
+                endTime = time()
+                node.waitTill(VALIDATING)
             except Exception as e:
                 print("Send Models failed!")
                 print(e)
-            endTime = time()
-            node.waitTill(VALIDATING)
 
         else:
             node.validateModels()
             # State might have changed during training
             try:
                 node.sendValidations()
+                endTime = time()
+                node.waitTill(POLLING)
             except Exception as e:
                 print("Send Validations failed!")
                 print(e)
-            endTime = time()
-            node.waitTill(POLLING)
         print(f"timetaken {startTime - endTime}")
