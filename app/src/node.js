@@ -1,44 +1,36 @@
 const Web3 = require("web3");
 
-const fs = require("fs");
 const URLProvider = "http://localhost:8546";
 const Contract = require("web3-eth-contract");
 
 class Node {
-    // let contract;
-    constructor() {
-        this.contract = null;
+  // let contract;
+  constructor() {
+    this.contract = null;
+  }
+
+  connectToContract = async function () {
+    if (this.contract != null) return;
+    var web3 = new Web3(Web3.givenProvider || URLProvider);
+
+    if (await web3.eth.net.isListening()) {
+      console.log("Connected to Node");
+    } else {
+      console.log("Wow. Something went wrong: ");
     }
+    Contract.setProvider(URLProvider);
+    let abi = await (await fetch("abi.json")).json();
+    let contractAddress = await (await fetch("contract-address.txt")).text();
 
-    connectToContract = async function() {
-        if (this.contract != null) return;
-        var web3 = new Web3(Web3.givenProvider || URLProvider);
+    // console.log(abi);
+    // console.log(contractAddress);
 
-        console.log("connecting..");
-        if (await web3.eth.net.isListening()) {
-            console.log("is connected");
-        } else {
-            console.log("Wow. Something went wrong: ");
-        }
-        Contract.setProvider(URLProvider);
-        let contractjson = (await fetch('abi.json')).json;
-        let contractAddress = (await fetch('contract-address.txt')).text;
+    this.contract = new Contract(abi, contractAddress);
+  };
 
-        this.contract = new Contract(abi, contractAddress);
-    };
-
-    getState = async function() {
-        return await this.contract.methods.getState().call();
-    };
+  getState = async function () {
+    return await this.contract.methods.getState().call();
+  };
 }
 
-let some = async function() {
-
-    let node = new Node();
-
-    await node.connectToContract();
-}
-
-some()
-
-export default Node;
+export { Node };
