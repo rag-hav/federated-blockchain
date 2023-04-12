@@ -5,3 +5,4 @@ abi.json
 __pycache__
 contract-address.txt
 env
+blockchain/static-nodes.json
