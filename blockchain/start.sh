@@ -10,7 +10,7 @@ dir=$(pwd)/$id
 
 port=30302
 http_port=8545
-authrpc_port=8550
+authrpc_port=9550
 
 let "port+=num"
 let "http_port+=num"
