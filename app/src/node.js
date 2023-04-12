@@ -1,7 +1,7 @@
-const Web3 = require("web3");
+import { URLProvider } from "./constants.js";
 
-const URLProvider = "http://localhost:8546";
 const Contract = require("web3-eth-contract");
+const Web3 = require("web3");
 
 class Node {
   // let contract;
