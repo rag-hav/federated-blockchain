@@ -23,8 +23,10 @@ class Node:
         self.validationScores = []
 
     def connectNode(self, gethHttp: str):
-        del os.environ['http_proxy']
-        del os.environ['https_proxy']
+        if 'http_proxy' in os.environ:
+            del os.environ['http_proxy']
+        if 'https_proxy' in os.environ:
+            del os.environ['https_proxy']
 
         w3 = Web3(Web3.HTTPProvider(gethHttp))
         assert(w3.is_connected())
